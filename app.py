@@ -1,4 +1,5 @@
 import os
+import secrets
 import io
 import cv2
 import base64
@@ -84,9 +85,15 @@ print("Loading YOLOv11-Pose model. This might take a moment to download on first
 pose_model = YOLO("yolo11n-pose.pt")
 
 # --- Authentication Configuration ---
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
+_env_password = os.getenv("ADMIN_PASSWORD")
+if _env_password:
+    ADMIN_PASSWORD = _env_password
+else:
+    ADMIN_PASSWORD = secrets.token_urlsafe(16)
+    print(f"[AttendX] No ADMIN_PASSWORD env var set. Generated password: {ADMIN_PASSWORD}")
 SESSION_COOKIE = "attendx_session"
 SESSION_MAX_AGE = 3600 * 12 # 12 hours
+active_sessions: set = set()
 
 # --- Initialize Database ---
 db = DatabaseManager()
@@ -138,20 +145,26 @@ async def login_page(request: Request):
 @app.post("/login")
 async def login(password: str = Form(...)):
     if password == ADMIN_PASSWORD:
+        token = secrets.token_urlsafe(32)
+        active_sessions.add(token)
         response = RedirectResponse(url="/", status_code=303)
-        response.set_cookie(key=SESSION_COOKIE, value="authenticated", httponly=True, max_age=SESSION_MAX_AGE)
+        response.set_cookie(key=SESSION_COOKIE, value=token, httponly=True, max_age=SESSION_MAX_AGE, samesite="strict", secure=True)
         return response
     return Response(status_code=401)
 
 @app.get("/logout")
-async def logout():
+async def logout(request: Request):
+    token = request.cookies.get(SESSION_COOKIE)
+    if token:
+        active_sessions.discard(token)
     response = RedirectResponse(url="/login")
     response.delete_cookie(SESSION_COOKIE)
     return response
 
 # --- Middleware-like check for protected routes ---
 def is_authenticated(request: Request):
-    return request.cookies.get(SESSION_COOKIE) == "authenticated"
+    token = request.cookies.get(SESSION_COOKIE)
+    return token is not None and token in active_sessions
 
 # --- Middleware for global protection ---
 @app.middleware("http")
@@ -160,7 +173,8 @@ async def auth_middleware(request: Request, call_next):
     if path in ["/login", "/logout"] or path.startswith("/static"):
         return await call_next(request)
     
-    if request.cookies.get(SESSION_COOKIE) != "authenticated":
+    token = request.cookies.get(SESSION_COOKIE)
+    if not token or token not in active_sessions:
         if path.startswith("/api") or path.startswith("/ws"):
             return Response("Unauthorized", status_code=401)
         return RedirectResponse(url="/login")

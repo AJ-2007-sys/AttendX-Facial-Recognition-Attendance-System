@@ -1,0 +1,14 @@
+opencv-python
+deepface
+numpy
+pandas
+
+customtkinter
+fastapi
+uvicorn
+websockets
+python-multipart
+jinja2
+mediapipe
+ultralytics
+python-dotenv

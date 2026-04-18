@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendX - Face Recognition Attendance</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Background Particles -->
+    <div id="particles-js"></div>
+    
+    <!-- Background Blobs -->
+
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="logo">
+            <img src="/static/logo.png" alt="AttendX Logo" class="logo-img">
+            <h2>AttendX</h2>
+        </div>
+        <ul class="nav-links">
+            <li class="active" onclick="showTab('dashboard')">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <rect x="3" y="3" width="7" height="7" rx="1" />
+                    <rect x="14" y="3" width="7" height="7" rx="1" />
+                    <rect x="3" y="14" width="7" height="7" rx="1" />
+                    <rect x="14" y="14" width="7" height="7" rx="1" />
+                </svg>
+                Dashboard
+            </li>
+            <li onclick="showTab('attendance-view')">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                    <path d="m9 14 2 2 4-4" />
+                </svg>
+                Attendance Logs
+            </li>
+            <li onclick="showTab('students-view')">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                Registered Students
+            </li>
+            <li class="danger" onclick="showTab('settings')">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle cx="12" cy="12" r="3" />
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+                Settings
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="content">
+
+        <header class="top-nav" style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>Overview</h1>
+            <a href="/logout" class="btn danger" style="padding: 8px 16px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Logout
+            </a>
+        </header>
+
+        <!-- DASHBOARD TAB -->
+        <section id="dashboard" class="tab-content active">
+        <div class="stats-grid" id="dashboard-stats">
+            <div class="stat-card">
+                    <div class="stat-icon" style="color: var(--accent-blue); background: rgba(59,130,246,0.1);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Total Students</p>
+                        <h4 class="stat-value skeleton" id="stat-students"></h4>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="color: var(--accent-green); background: rgba(34,197,94,0.1);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Today's Attendance</p>
+                        <h4 class="stat-value skeleton" id="stat-attendance"></h4>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="color: var(--accent-purple); background: rgba(139,92,246,0.1);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Model Status</p>
+                        <h4 class="stat-value skeleton" id="stat-model"></h4>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cards-grid">
+                <!-- Register Card -->
+                <div class="card action-card">
+                    <h3>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                            <circle cx="8.5" cy="7" r="4" />
+                            <line x1="20" y1="8" x2="20" y2="14" />
+                            <line x1="23" y1="11" x2="17" y2="11" />
+                        </svg>
+                        Register New Student
+                    </h3>
+                    <p>Enroll a new user by capturing 20 facial samples via your browser webcam.</p>
+                    <input type="text" id="reg-id" placeholder="Student ID">
+                    <input type="text" id="reg-name" placeholder="Full Name">
+                    <button class="btn primary" onclick="startRegistration()">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path
+                                d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                            <circle cx="12" cy="13" r="4" />
+                        </svg>
+                        Start Camera Enrollment
+                    </button>
+                    <div id="reg-status" class="status-msg"></div>
+                </div>
+
+                <!-- Train Card -->
+                <div class="card action-card">
+                    <h3>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M18 20V10" />
+                            <path d="M12 20V4" />
+                            <path d="M6 20v-6" />
+                        </svg>
+                        Train Recognition Model
+                    </h3>
+                    <p>Compile all registered faces into the VGG embedding model for recognition.</p>
+                    <button class="btn secondary" onclick="startTraining()">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polyline points="1 4 1 10 7 10" />
+                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                        </svg>
+                        Train Model Now
+                    </button>
+                    <div class="progress-container" id="train-progress-container">
+                        <div class="progress-bar" id="train-progress"></div>
+                    </div>
+                    <div id="train-status" class="status-msg"></div>
+                </div>
+
+                <!-- Live Attendance Card -->
+                <div class="card action-card span-2">
+                    <h3>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polygon points="23 7 16 12 23 17 23 7" />
+                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                        </svg>
+                        Live Attendance Camera
+                    </h3>
+                    <p>Turn on the webcam to start logging attendance automatically via face recognition. Opens in a dedicated camera view.</p>
+                    <button class="btn primary" onclick="startAttendance()">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="10" />
+                            <polygon points="10 8 16 12 10 16 10 8" />
+                        </svg>
+                        Launch Camera
+                    </button>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ATTENDANCE VIEW TAB -->
+        <section id="attendance-view" class="tab-content">
+            <div class="card" style="padding: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="display: flex; align-items: center; gap: 10px; font-size: 17px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="m9 14 2 2 4-4"/></svg>
+                        Attendance Sessions
+                    </h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" id="search-attendance" class="form-control" style="padding: 6px 12px; font-size: 13px; width: 200px;" placeholder="Search in opened sessions..." onkeyup="filterAttendance()">
+                        <button class="btn outline small" onclick="fetchSessions()">Refresh</button>
+                    </div>
+                </div>
+                <div id="sessions-container">
+                    <!-- Sessions loaded dynamically by JS -->
+                    <p style="color: var(--text-muted); font-size: 13px;">Loading sessions...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- STUDENTS VIEW TAB -->
+        <section id="students-view" class="tab-content">
+            <div class="card table-card">
+                <div class="card-header">
+                    <h3>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            width="18" height="18">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg>
+                        Registered Profiles
+                    </h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" id="search-students" class="form-control" style="padding: 6px 12px; font-size: 13px; width: 200px;" placeholder="Search by name or ID..." onkeyup="filterStudents()">
+                        <button class="btn outline small" onclick="fetchStudents()">Refresh</button>
+                    </div>
+                </div>
+                <table class="modern-table">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Registration Date</th>
+                            <th style="width: 60px; text-align: right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="students-table-body"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SETTINGS / DANGER ZONE TAB -->
+        <section id="settings" class="tab-content">
+            <div class="card danger-card">
+                <h3>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        width="20" height="20">
+                        <path
+                            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    Danger Zone
+                </h3>
+                <p>Permanent data destruction. These actions cannot be undone.</p>
+                <div class="danger-buttons">
+                    <button class="btn danger" onclick="clearData('attendance')">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                        Clear Attendance
+                    </button>
+                    <button class="btn danger" onclick="clearData('students')">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                        Clear Registered Faces
+                    </button>
+                    <button class="btn danger" onclick="clearData('model')">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                        Clear Trained Model
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="/static/script.js"></script>
+</body>
+
+</html>

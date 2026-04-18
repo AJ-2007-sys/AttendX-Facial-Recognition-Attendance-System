@@ -1,0 +1,32 @@
+# Environments
+.env
+.venv/
+env/
+venv/
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Application Data (Privacy & Security)
+database.db
+encodings.pkl
+dataset/
+attendance.csv
+
+# Heavy Models
+*.pt
+yolo11n-pose.pt
+runs/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+
+convert_md_to_docx.py

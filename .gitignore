@@ -29,4 +29,18 @@ Thumbs.db
 .vscode/
 .idea/
 
+# One-off utility scripts
 convert_md_to_docx.py
+push_code.py
+
+# Build artifacts
+README.docx
+*.msi
+
+# Debug / diagnostic logs
+pip_diagnostics*.log
+pip_dlib.log
+*.log
+
+# Test scripts (dev-only, not part of the app)
+test_*.py

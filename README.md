@@ -1,5 +1,10 @@
 # AttendX - Intelligent Face Recognition Attendance System
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Framework-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![DeepFace](https://img.shields.io/badge/AI-DeepFace%20%2B%20YOLOv11-orange.svg)](https://github.com/serengil/deepface)
+
 AttendX is a modern, web-based Face Recognition Attendance System built with Python, FastAPI, and DeepFace. It seamlessly registers users via a browser webcam interface, trains a facial recognition model backend, and performs real-time continuous attendance logging through a sleek, glassmorphic dashboard.
 
 ![AttendX Dashboard Concept](https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=2000) *(Illustration of data visualization)*

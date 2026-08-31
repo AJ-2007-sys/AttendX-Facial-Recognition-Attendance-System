@@ -199,5 +199,3 @@ AttendX/
 | `yolo11n-pose.pt` | YOLO model (auto-downloaded) |
 
 ---
-
-*Developed as part of an advanced AI modernization migration.*

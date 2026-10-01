@@ -150,8 +150,55 @@ function fetchStats() {
         .catch(err => console.error("Error fetching stats:", err));
 }
 
+// --- System & Hardware Acceleration Diagnostics ---
+function fetchSystemStatus() {
+    fetch('/api/system/status')
+        .then(res => res.json())
+        .then(data => {
+            const elHardware = document.getElementById('stat-hardware');
+            const elHardwareSub = document.getElementById('stat-hardware-sub');
+            const diagDevice = document.getElementById('diag-device');
+            const diagModel = document.getElementById('diag-model');
+            const diagTracker = document.getElementById('diag-tracker');
+
+            const isCuda = Boolean(data.is_cuda || data.cuda_available);
+            const devName = data.device || data.device_name || (isCuda ? 'NVIDIA GPU' : 'CPU');
+
+            if (elHardware) {
+                if (isCuda) {
+                    elHardware.innerText = 'GPU (CUDA)';
+                    elHardware.style.color = 'var(--accent-green)';
+                    if (elHardwareSub) {
+                        elHardwareSub.innerText = devName.replace('NVIDIA GeForce ', '').replace(' Laptop GPU', ' GPU');
+                    }
+                } else {
+                    elHardware.innerText = 'CPU Mode';
+                    elHardware.style.color = 'var(--accent-purple)';
+                    if (elHardwareSub) {
+                        elHardwareSub.innerText = 'Standard Host Processing';
+                    }
+                }
+                elHardware.classList.remove('skeleton');
+            }
+
+            if (diagDevice) {
+                diagDevice.innerText = isCuda 
+                    ? `🟢 ${devName}`
+                    : `⚪ CPU (Host Fallback)`;
+            }
+            if (diagModel) {
+                diagModel.innerText = data.pose_model || 'yolo11n-pose.pt';
+            }
+            if (diagTracker) {
+                diagTracker.innerText = data.tracker || 'ByteTrack';
+            }
+        })
+        .catch(err => console.error("Error fetching system status:", err));
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     fetchStats();
+    fetchSystemStatus();
     
     // Initialize Particles.js background
     if (typeof particlesJS !== 'undefined') {
@@ -218,6 +265,9 @@ function showTab(tabId) {
     // Auto-refresh tables and set up polling if needed
     if (tabId === 'dashboard') {
         fetchStats();
+        fetchSystemStatus();
+    } else if (tabId === 'settings') {
+        fetchSystemStatus();
     } else if (tabId === 'attendance-view') {
         fetchSessions();
         // No polling here — it would collapse open accordions

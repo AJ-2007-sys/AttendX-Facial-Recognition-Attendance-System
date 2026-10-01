@@ -100,6 +100,16 @@
                         <h4 class="stat-value skeleton" id="stat-model"></h4>
                     </div>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="color: var(--accent-cyan); background: rgba(6,182,212,0.1);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Inference Engine</p>
+                        <h4 class="stat-value skeleton" id="stat-hardware"></h4>
+                        <span class="stat-sub" id="stat-hardware-sub" style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 2px;"></span>
+                    </div>
+                </div>
             </div>
 
             <div class="cards-grid">
@@ -229,6 +239,40 @@
 
         <!-- SETTINGS / DANGER ZONE TAB -->
         <section id="settings" class="tab-content">
+            <!-- System & Pipeline Diagnostics Card -->
+            <div class="card" style="margin-bottom: 2rem;">
+                <h3>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20">
+                        <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                        <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                        <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                        <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                    </svg>
+                    Inference & Pipeline Diagnostics
+                </h3>
+                <p>Live runtime telemetry for hardware acceleration, vision models, and multi-object tracking.</p>
+                <div class="stats-grid" style="margin-top: 1.25rem; margin-bottom: 0;">
+                    <div class="stat-card" style="padding: 1rem;">
+                        <div class="stat-details">
+                            <p class="stat-label">Acceleration Device</p>
+                            <h4 class="stat-value" id="diag-device" style="font-size: 1.05rem; color: var(--accent-green); margin-top: 0.25rem;">Checking...</h4>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="padding: 1rem;">
+                        <div class="stat-details">
+                            <p class="stat-label">Pose Model</p>
+                            <h4 class="stat-value" id="diag-model" style="font-size: 1.05rem; color: var(--accent-cyan); margin-top: 0.25rem;">yolo11n-pose.pt</h4>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="padding: 1rem;">
+                        <div class="stat-details">
+                            <p class="stat-label">Multi-Object Tracker</p>
+                            <h4 class="stat-value" id="diag-tracker" style="font-size: 1.05rem; color: var(--accent-purple); margin-top: 0.25rem;">ByteTrack (lap)</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card danger-card">
                 <h3>
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"

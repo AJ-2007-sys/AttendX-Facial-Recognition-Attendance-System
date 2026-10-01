@@ -132,6 +132,17 @@
             </div>
         </div>
 
+        <div class="telemetry-hud" id="telemetry-hud">
+            <span class="hud-dot"></span>
+            <span id="hud-device">GPU: Initializing...</span>
+            <span class="hud-sep">•</span>
+            <span id="hud-latency">-- ms</span>
+            <span class="hud-sep">•</span>
+            <span id="hud-fps">-- FPS</span>
+            <span class="hud-sep">•</span>
+            <span class="hud-badge">ByteTrack</span>
+        </div>
+
         <div class="video-box">
             <video id="webcam" autoplay playsinline></video>
             <canvas class="overlay" id="overlay"></canvas>
@@ -162,6 +173,10 @@
         let ws = null;
         let stream = null;
         const markedNames = new Set();
+
+        // FPS & Latency Telemetry Tracking
+        let frameCount = 0;
+        let fpsTimer = performance.now();
 
         const cameraSelect = document.getElementById('camera-select');
 
@@ -242,12 +257,30 @@
                     return;
                 }
 
+                // Update Telemetry HUD
+                const now = performance.now();
+                frameCount++;
+                if (now - fpsTimer >= 500) {
+                    const fps = Math.round((frameCount * 1000) / (now - fpsTimer));
+                    frameCount = 0;
+                    fpsTimer = now;
+                    document.getElementById('hud-fps').innerText = `${fps} FPS`;
+                }
+
+                if (data.latency_ms !== undefined) {
+                    document.getElementById('hud-latency').innerText = `${data.latency_ms} ms`;
+                }
+                if (data.device) {
+                    document.getElementById('hud-device').innerText = data.device.toLowerCase().includes('cpu') ? 'Host: CPU' : `GPU: ${data.device}`;
+                }
+
                 overCtx.clearRect(0, 0, overlay.width, overlay.height);
 
                 if (data.faces && data.faces.length > 0) {
                     data.faces.forEach(face => {
-                        const { x, y, w, h, name, distance, blink } = face;
+                        const { x, y, w, h, name, distance, blink, track_id } = face;
                         const isKnown = name !== 'Unknown';
+                        const tidTag = track_id ? `[#${track_id}] ` : '';
 
                         // Bounding box - color based on blink status
                         let boxColor = '#ef4444'; // red for unknown
@@ -268,17 +301,19 @@
                         overCtx.beginPath(); overCtx.moveTo(x, y + h - cornerLen); overCtx.lineTo(x, y + h); overCtx.lineTo(x + cornerLen, y + h); overCtx.stroke();
                         overCtx.beginPath(); overCtx.moveTo(x + w - cornerLen, y + h); overCtx.lineTo(x + w, y + h); overCtx.lineTo(x + w, y + h - cornerLen); overCtx.stroke();
 
-                        // Name label with liveness status
+                        // Name label with accurate liveness status and track ID
                         let labelBg = 'rgba(239,68,68,0.85)';
-                        let labelText = `${name} (${distance.toFixed(2)})`;
+                        let labelText = `${tidTag}${name}`;
+
                         if (isKnown && blink === 'verified') {
-                            labelBg = 'rgba(34,197,94,0.85)';
-                            labelText = `✓ ${name} (${distance.toFixed(2)})`;
+                            labelBg = 'rgba(34,197,94,0.90)';
+                            labelText = `✓ ${tidTag}${name} (${distance.toFixed(2)})`;
                         } else if (isKnown && blink === 'waiting') {
-                            labelBg = 'rgba(245,158,11,0.85)';
-                            labelText = `👁 Move slightly to verify — ${name}`;
+                            labelBg = 'rgba(245,158,11,0.92)';
+                            labelText = `👁 ${tidTag}Please blink to verify — ${name}`;
                         } else if (isKnown) {
                             labelBg = 'rgba(59,130,246,0.85)';
+                            labelText = `${tidTag}${name} (${distance.toFixed(2)})`;
                         }
 
                         overCtx.fillStyle = labelBg;
@@ -300,7 +335,6 @@
                 }
                 
                 // Only send the next frame AFTER processing is 100% complete
-                // This eliminates the WebSocket queue delay and keeps tracking perfectly synced
                 requestAnimationFrame(() => sendNextFrame());
             };
 

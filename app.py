@@ -8,6 +8,7 @@ import numpy as np
 import pickle
 import threading
 import shutil
+import time
 from datetime import datetime
 import asyncio
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, Form, Depends
@@ -229,6 +230,18 @@ async def get_stats():
         "total_students": students_count,
         "today_attendance": today_attendance,
         "model_trained": model_trained
+    }
+
+@app.get("/api/system/status")
+async def get_system_status():
+    device_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU"
+    return {
+        "device": device_name,
+        "is_cuda": torch.cuda.is_available(),
+        "cuda_version": torch.version.cuda if torch.cuda.is_available() else None,
+        "pose_model": POSE_MODEL_PATH,
+        "tracker": "ByteTrack",
+        "caching": "enabled"
     }
 
 @app.get("/api/attendance")
@@ -577,6 +590,7 @@ async def ws_recognize(websocket: WebSocket):
             
             frame = decode_image(data_url)
             frame_count += 1
+            t_frame_start = time.perf_counter()
             
             # Run YOLO pose detection with ByteTrack tracking on configured accelerator
             results = await asyncio.to_thread(
@@ -765,9 +779,12 @@ async def ws_recognize(websocket: WebSocket):
                 for t in stale_tids:
                     del track_cache[t]
                 
+            latency_ms = round((time.perf_counter() - t_frame_start) * 1000, 1)
             await websocket.send_json({
                 "faces": response_faces,
-                "marked": marked_just_now
+                "marked": marked_just_now,
+                "latency_ms": latency_ms,
+                "device": "RTX 4050" if torch.cuda.is_available() else "CPU"
             })
             
     except WebSocketDisconnect:

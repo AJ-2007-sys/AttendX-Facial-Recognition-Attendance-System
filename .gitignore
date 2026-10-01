@@ -44,3 +44,15 @@ pip_dlib.log
 
 # Test scripts (dev-only, not part of the app)
 test_*.py
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
+
+# Agent / IDE configs
+.claude/
+.gemini/
+.context.md
+.ignore
+.mcp.json
+AGENTS.md
+GEMINI.md

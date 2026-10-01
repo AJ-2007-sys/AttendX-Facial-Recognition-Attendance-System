@@ -11,4 +11,5 @@ python-multipart
 jinja2
 mediapipe
 ultralytics
+lap>=0.5.12
 python-dotenv

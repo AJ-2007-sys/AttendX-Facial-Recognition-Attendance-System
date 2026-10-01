@@ -1,4 +1,5 @@
 import os
+os.environ["PYTHONIOENCODING"] = "utf-8"
 import secrets
 import io
 import cv2
@@ -20,6 +21,7 @@ from scipy.spatial.distance import cosine
 from ultralytics import YOLO
 from dotenv import load_dotenv
 import mediapipe as mp
+import torch
 
 load_dotenv()
 
@@ -79,10 +81,19 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Mount templates (HTML)
 templates = Jinja2Templates(directory="templates")
 
-# Initialize YOLOv11 Pose model
-# It will automatically download yolo11n-pose.pt on first run
-print("Loading YOLOv11-Pose model. This might take a moment to download on first run...")
-pose_model = YOLO("yolo11n-pose.pt")
+# --- Hardware Acceleration Device Selection ---
+if torch.cuda.is_available():
+    INFERENCE_DEVICE = "cuda:0"
+    device_name = torch.cuda.get_device_name(0)
+    print(f"[AttendX] Hardware Acceleration: GPU ({device_name}) with CUDA {torch.version.cuda}")
+else:
+    INFERENCE_DEVICE = "cpu"
+    print("[AttendX] Hardware Acceleration: CPU")
+
+# Support configurable pose model (defaults to yolo11n-pose.pt, supports yolo26n-pose.pt)
+POSE_MODEL_PATH = os.getenv("POSE_MODEL_PATH", "yolo11n-pose.pt")
+print(f"[AttendX] Loading Pose model: {POSE_MODEL_PATH} on {INFERENCE_DEVICE}...")
+pose_model = YOLO(POSE_MODEL_PATH)
 
 # --- Authentication Configuration ---
 _env_password = os.getenv("ADMIN_PASSWORD")
@@ -140,7 +151,7 @@ def apply_clahe(img):
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="login.html", context={"request": request})
 
 @app.post("/login")
 async def login(password: str = Form(...)):
@@ -185,15 +196,15 @@ async def auth_middleware(request: Request, call_next):
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="index.html", context={"request": request})
 
 @app.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request):
-    return templates.TemplateResponse("register.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="register.html", context={"request": request})
 
 @app.get("/attendance", response_class=HTMLResponse)
 async def attendance_page(request: Request):
-    return templates.TemplateResponse("attendance.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="attendance.html", context={"request": request})
 
 @app.get("/api/students")
 async def get_students():
@@ -419,8 +430,8 @@ async def ws_register(websocket: WebSocket, student_id: str, student_name: str):
             
             frame = decode_image(data_url)
             
-            # Run YOLOv11 pose detection
-            results = await asyncio.to_thread(pose_model, frame, classes=[0], verbose=False)
+            # Run YOLO pose detection with hardware acceleration
+            results = await asyncio.to_thread(pose_model, frame, classes=[0], device=INFERENCE_DEVICE, verbose=False)
             
             face_list = []
             if len(results) > 0 and results[0].keypoints is not None:
@@ -463,8 +474,8 @@ async def ws_register(websocket: WebSocket, student_id: str, student_name: str):
             data_url = await websocket.receive_text()
             frame = decode_image(data_url)
             
-            # Run YOLOv11 pose detection
-            results = await asyncio.to_thread(pose_model, frame, classes=[0], verbose=False)
+            # Run YOLO pose detection with hardware acceleration
+            results = await asyncio.to_thread(pose_model, frame, classes=[0], device=INFERENCE_DEVICE, verbose=False)
             
             face_list = []
             if len(results) > 0 and results[0].keypoints is not None:
@@ -542,6 +553,19 @@ async def ws_recognize(websocket: WebSocket):
     # Liveness tracking per student: {student_id: {"live": bool}}
     liveness_tracker = {}
     
+    # ByteTrack Track Cache: track_id -> dict
+    # Cache structure:
+    # {
+    #   "name": str,
+    #   "s_id": str or None,
+    #   "distance": float,
+    #   "is_recognized": bool,
+    #   "last_frame": int,
+    #   "next_retry_frame": int
+    # }
+    track_cache = {}
+    frame_count = 0
+    
     try:
         while True:
             try:
@@ -552,25 +576,43 @@ async def ws_recognize(websocket: WebSocket):
             threshold = float(payload.get("threshold", 0.40))
             
             frame = decode_image(data_url)
+            frame_count += 1
             
-            # Run YOLOv11 pose detection in a thread (lowered conf for multi-person)
+            # Run YOLO pose detection with ByteTrack tracking on configured accelerator
             results = await asyncio.to_thread(
-                pose_model, frame, classes=[0], conf=0.25, verbose=False
+                pose_model.track,
+                frame,
+                tracker="bytetrack.yaml",
+                persist=True,
+                classes=[0],
+                conf=0.25,
+                device=INFERENCE_DEVICE,
+                verbose=False
             )
             
             response_faces = []
             marked_just_now = False
             
-            # Extract keypoints and build bounding boxes
+            # Extract keypoints, track IDs, and build bounding boxes
             if len(results) > 0 and results[0].keypoints is not None:
                 try:
                     keypoints_data = results[0].keypoints.xy.cpu().numpy()
                 except Exception:
                     keypoints_data = []
 
+                # Extract track IDs from ByteTrack
+                track_ids = []
+                if results[0].boxes is not None and results[0].boxes.id is not None:
+                    try:
+                        track_ids = results[0].boxes.id.int().cpu().tolist()
+                    except Exception:
+                        track_ids = []
+
                 # --- Step 1: Extract all face bounding boxes & ROIs ---
                 face_infos = []
-                for kp in keypoints_data:
+                for idx, kp in enumerate(keypoints_data):
+                    track_id = track_ids[idx] if idx < len(track_ids) else None
+                    
                     # YOLO Pose COCO 17 keypoints
                     # 0: Nose, 1: Left Eye, 2: Right Eye, 3: Left Ear, 4: Right Ear
                     if len(kp) < 5:
@@ -608,12 +650,28 @@ async def ws_recognize(websocket: WebSocket):
                     face_roi_clahe = apply_clahe(face_roi)
                     
                     face_infos.append({
+                        "track_id": track_id,
                         "x": x1, "y": y1, "w": w, "h": h,
                         "face_roi": face_roi,
                         "face_roi_clahe": face_roi_clahe
                     })
                 
-                # --- Step 2: Compute DeepFace embeddings for ALL faces CONCURRENTLY ---
+                # --- Step 2: Track Cache Check — filter faces needing DeepFace ---
+                faces_needing_embedding = []
+                for fi in face_infos:
+                    tid = fi["track_id"]
+                    # If track exists in cache and is already recognized, bypass DeepFace
+                    if tid is not None and tid in track_cache:
+                        entry = track_cache[tid]
+                        entry["last_frame"] = frame_count
+                        if entry.get("is_recognized", False):
+                            continue  # Cache Hit!
+                        elif frame_count < entry.get("next_retry_frame", 0):
+                            continue  # Unknown, but waiting for retry frame
+                    
+                    faces_needing_embedding.append(fi)
+
+                # Compute DeepFace embeddings concurrently ONLY for faces that need it
                 async def _get_embedding(roi_clahe):
                     try:
                         objs = await asyncio.to_thread(
@@ -627,52 +685,85 @@ async def ws_recognize(websocket: WebSocket):
                     return None
                 
                 embeddings = list(await asyncio.gather(
-                    *[_get_embedding(fi["face_roi_clahe"]) for fi in face_infos]
-                )) if face_infos else []
+                    *[_get_embedding(fi["face_roi_clahe"]) for fi in faces_needing_embedding]
+                )) if faces_needing_embedding else []
                 
-                # --- Step 3: Match embeddings & handle liveness (sequential) ---
-                for fi, embedding in zip(face_infos, embeddings):
+                # Update track cache with newly computed embeddings
+                for fi, emb in zip(faces_needing_embedding, embeddings):
+                    tid = fi["track_id"]
                     name = "Unknown"
+                    s_id = None
                     distance = 1.0
-                    blink_status = "none"
+                    is_rec = False
                     
-                    if embedding is not None:
-                        dist_list = [cosine(known_emb, embedding) for known_emb in known_embeddings]
+                    if emb is not None:
+                        dist_list = [cosine(known_emb, emb) for known_emb in known_embeddings]
                         min_dist_idx = np.argmin(dist_list)
-                        min_dist = dist_list[min_dist_idx]
+                        min_dist = float(dist_list[min_dist_idx])
                         
                         if min_dist <= threshold:
                             name = known_names[min_dist_idx]
                             s_id = known_ids[min_dist_idx]
-                            distance = float(min_dist)
+                            distance = min_dist
+                            is_rec = True
+                    
+                    if tid is not None:
+                        track_cache[tid] = {
+                            "name": name,
+                            "s_id": s_id,
+                            "distance": distance,
+                            "is_recognized": is_rec,
+                            "last_frame": frame_count,
+                            "next_retry_frame": frame_count + 15 if not is_rec else 0
+                        }
+
+                # --- Step 3: Assemble response & process liveness verification ---
+                for fi in face_infos:
+                    tid = fi["track_id"]
+                    if tid is not None and tid in track_cache:
+                        cached = track_cache[tid]
+                        name = cached["name"]
+                        s_id = cached["s_id"]
+                        distance = cached["distance"]
+                    else:
+                        name = "Unknown"
+                        s_id = None
+                        distance = 1.0
+
+                    blink_status = "none"
+                    if s_id:
+                        if s_id not in session_marked:
+                            if s_id not in liveness_tracker:
+                                liveness_tracker[s_id] = {"live": False}
                             
-                            if s_id not in session_marked:
-                                if s_id not in liveness_tracker:
-                                    liveness_tracker[s_id] = {"live": False}
-                                
-                                tracker = liveness_tracker[s_id]
-                                
-                                if not tracker["live"]:
-                                    face_rgb = cv2.cvtColor(fi["face_roi"], cv2.COLOR_BGR2RGB)
-                                    is_blinking = check_blink(face_rgb)
-                                    if is_blinking:
-                                        tracker["live"] = True
-                                
-                                if tracker["live"]:
-                                    if mark_attendance(s_id, name, current_session_id):
-                                        marked_just_now = True
-                                    session_marked.add(s_id)
-                                    blink_status = "verified"
-                                else:
-                                    blink_status = "waiting"
-                            else:
+                            tracker = liveness_tracker[s_id]
+                            if not tracker["live"]:
+                                face_rgb = cv2.cvtColor(fi["face_roi"], cv2.COLOR_BGR2RGB)
+                                is_blinking = check_blink(face_rgb)
+                                if is_blinking:
+                                    tracker["live"] = True
+                            
+                            if tracker["live"]:
+                                if mark_attendance(s_id, name, current_session_id):
+                                    marked_just_now = True
+                                session_marked.add(s_id)
                                 blink_status = "verified"
+                            else:
+                                blink_status = "waiting"
+                        else:
+                            blink_status = "verified"
                     
                     response_faces.append({
                         "x": int(fi["x"]), "y": int(fi["y"]),
                         "w": int(fi["w"]), "h": int(fi["h"]),
-                        "name": name, "distance": distance, "blink": blink_status
+                        "name": name, "distance": distance, "blink": blink_status,
+                        "track_id": tid
                     })
+
+                # Evict stale tracks absent for > 45 frames (~2-3 seconds)
+                stale_tids = [t for t, d in track_cache.items() if frame_count - d["last_frame"] > 45]
+                for t in stale_tids:
+                    del track_cache[t]
                 
             await websocket.send_json({
                 "faces": response_faces,
@@ -682,6 +773,8 @@ async def ws_recognize(websocket: WebSocket):
     except WebSocketDisconnect:
         # End the session when camera disconnects
         db.end_session(current_session_id)
+        # Clear tracker cache
+        track_cache.clear()
         print(f"Recognition client disconnected. Session #{current_session_id} closed.")
 
 
